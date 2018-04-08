@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+	http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	http://www.springframework.org/schema/mvc 
+	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+	http://www.springframework.org/schema/aop 
+	http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+	http://www.springframework.org/schema/tx 
+	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+	
+	<bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile" value="classpath:ehcache.xml"></property>
+	</bean>
+	<bean id="jdbcRealm" class="com.realm.MyRealm">
+		<property name="credentialsMatcher">
+			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+				<!-- 指定采用什么方式进行加密 -->
+				<property name="hashAlgorithmName" value="MD5"></property>
+				<!-- 指定加密的次数 -->
+				<property name="hashIterations" value="1024"></property>
+			</bean>
+		</property>
+	</bean>
+	<!-- 安全管理器 -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="cacheManager" ref="cacheManager"></property>
+		<property name="realm" ref="jdbcRealm"></property>
+	</bean>
+	<!-- 可以自动调用配置在spring ioc容器中的shiro bean的生命周期方法    shiro生命周期处理器-->
+   <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"></bean>
+   <!-- 启用ioc容器中shiro的注解 但必须配置了lifecycleBeanPostProcessor后才能使用 -->
+   <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor"></bean>
+   <!-- id必须和web.xml文件中配置的filter标签中的name一致 -->
+   <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+    <!-- 配置安全管理器 -->
+    <property name="securityManager" ref="securityManager"></property>
+    <property name="loginUrl" value="/login.jsp"></property>
+    <property name="successUrl" value="/main.jsp"></property>
+    <property name="unauthorizedUrl" value="/404.jsp"></property>
+    <!-- 配置那些页面需要受保护，以及访问这些页面需要的权限 -->
+    <!-- 
+    1.anon 可以被匿名访问
+    2.authc必须认证之后才可以被访问，即登陆
+     -->
+    <property name="filterChainDefinitions">
+      <value>
+       /js/** = anon
+       /css/** = anon
+       /images/** = anon
+       /common/** = anon
+       /json/** = anon
+       /jsplug/** = anon
+       /ztree/** = anon
+       
+        /user/main=anon
+         /user/login=anon
+      /logout=logout
+        /**=authc
+      </value>
+    </property>
+   </bean>
+   <bean id="shiroService" class="com.service.ShiroService"></bean>
+	
+	<context:annotation-config></context:annotation-config>
+	<context:component-scan base-package="com"></context:component-scan>
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	   <property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
+	   <property name="url" value="jdbc:mysql:///comp"></property>
+	   <property name="username" value="root"></property>
+	   <property name="password" value="root"></property>
+	</bean>
+	<bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+	   <property name="mapperLocations" value="classpath:com/mapper/*.xml"></property>
+	   <property name="dataSource" ref="dataSource"></property>
+	   <property name="typeAliasesPackage" value="com.bean"></property>
+	</bean>
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	   <property name="sqlSessionFactory" ref="sqlSessionFactoryBean"></property>
+	   <property name="basePackage" value="com.mapper"></property>
+	</bean>
+	<!-- 事务管理器 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	   <!-- 注入数据源 -->
+	   <property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<!-- 声明建议 -->
+<!-- 	<tx:advice id="aopAdvice">
+	   <tx:attributes>
+	      SUPPORTS表示如果当前上下文环境中存在事物则用，不存在则不用
+	      <tx:method name="list*" propagation="SUPPORTS"/>
+	      REQUIRED 当前操作必须使用事务进行管理
+	      <tx:method name="delete*" propagation="REQUIRED"/>
+	      <tx:method name="update*" propagation="REQUIRED"/>
+	      <tx:method name="save*" propagation="REQUIRED"/>
+	   </tx:attributes>
+	</tx:advice>
+	aop配置 proxy-target-class 如果为true表示采用JDK动态代理实现，如果是false则表示采用cglib实现
+	<aop:config proxy-target-class="true">
+	声明切点
+	   <aop:pointcut expression="execution(* com.service..*.*(..))" id="pointCut"/>
+	   给这些切点配置声明建议
+	   <aop:advisor advice-ref="aopAdvice" pointcut-ref="pointCut"/>
+	</aop:config> -->
+	
+</beans>

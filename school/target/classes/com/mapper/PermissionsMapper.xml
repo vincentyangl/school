@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.mapper.PermissionsDao">
+   <insert id="save" parameterType="Permissions">
+      insert into permissions (name,per_newName,per_url,per_menu,pId) 
+      values (#{name},#{per_newName},#{per_url},#{per_menu},#{pId})
+   </insert>
+   <delete id="delete" parameterType="int">
+      delete from permissions where id=#{value}
+   </delete>
+   <update id="update" parameterType="Permissions">
+      update permissions set name=#{name},per_newName=#{per_newName},per_url=#{per_url},
+      per_menu=#{per_menu},pId=#{pId} where id=#{id}
+   </update>
+   <update id="updateName" parameterType="Permissions">
+      update permissions set name=#{name} where id=#{id}
+   </update>
+   <resultMap type="Permissions" id="PermissionsMap">
+      <result column="id" property="id"/>
+      <result column="name" property="name"/>
+      <result column="per_newName" property="per_newName"/>
+      <result column="per_url" property="per_url"/>
+      <result column="per_menu" property="per_menu"/>
+      <result column="pId" property="pId"/>
+      <association property="pers" column="id" select="com.mapper.PermissionsDao.getChildNode"></association>
+   </resultMap>
+   <select id="listAll"  parameterType="java.util.Map" resultMap="PermissionsMap">
+      select * from permissions 
+      <where>
+         <if test="per_menu!=null">
+            and per_menu=#{per_menu}
+         </if>
+         <if test="pId!=null">
+            and pId=#{pId}
+         </if>
+      </where>
+   </select>
+   <select id="getChildNode" parameterType="int" resultMap="PermissionsMap">
+      select * from permissions where pId=#{value}
+   </select>
+   <select id="getPermissionsByRoleId" parameterType="int" resultMap="PermissionsMap">
+      select * from permissions where id in (select pid from role_per where rid = #{value})
+   </select>
+  </mapper>
